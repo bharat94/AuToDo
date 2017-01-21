@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
+import android.provider.ContactsContract;
 
 import com.evernote.client.android.EvernoteSession;
 
