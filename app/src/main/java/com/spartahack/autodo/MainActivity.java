@@ -41,16 +41,32 @@ public class MainActivity extends AppCompatActivity {
             if(s.contains("thank")) {
                 s = convertStringToTask(s);
                 String emailID = getEmailID(s.trim().split(" "));
+                sendThanks(emailID);
             }
         }
     }
 
 
+    public String getEmailID(String[] arr){
+        //Access android contacts
+        // Run match queries on the db with arr
+
+        for(int i = 0; i < arr.length -1; i++){
+            String s1 = arr[i];
+            String s2 = arr[i+1];
+
+        }
+    }
+
+    public void sendThanks(String emailID){
+        // Sendgrid API here
+    }
+
 
     public String convertStringToTask(String s){
 
         for(String str : removeList)
-            removeString(s, str);
+            s = removeString(s, str);
 
         if(s.charAt(s.length()-1) == '.')
             s.substring(0,s.length()-1);
