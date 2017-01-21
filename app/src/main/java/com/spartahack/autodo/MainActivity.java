@@ -32,14 +32,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onClick(View v){
+    public void onClick(View v) throws IOException {
         Toast.makeText(MainActivity.this, "Hello", Toast.LENGTH_SHORT).show();
-        MainActivity.sendEmail();
+        sendThanks("akhila.shankar12@gmail.com");
 
     }
 
-    public static void sendEmail() throws IOException
-
+    public void sendThanks(String emailID) throws IOException
     {
         Email from = new Email("akhila.shankar12@gmail.com");
         String subject = "Sending with SendGrid is Fun";
@@ -63,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void convertStringsToTasks(String[] arr){
+    public void convertStringsToTasks(String[] arr) throws IOException {
         for(String s : arr){
             s = s.trim();
             s = s.toLowerCase();
@@ -76,19 +75,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public String getEmailID(String[] arr){
+    public String getEmailID(String[] arr) {
         //Access android contacts
         // Run match queries on the db with arr
 
-        for(int i = 0; i < arr.length -1; i++){
+        for (int i = 0; i < arr.length - 1; i++) {
             String s1 = arr[i];
-            String s2 = arr[i+1];
+            String s2 = arr[i + 1];
 
         }
-    }
-
-    public void sendThanks(String emailID){
-        // Sendgrid API here
+        return "";
     }
 
 
