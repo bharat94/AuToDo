@@ -5,12 +5,27 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import com.evernote.client.android.EvernoteSession;
+
 public class MainActivity extends AppCompatActivity {
+
+    private static final String CONSUMER_KEY = "rohansapre";
+    private static final String CONSUMER_SECRET = "ba4973576cbffdfe";
+    private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
+    private static final boolean SUPPORT_APP_LINKED_NOTEBOOKS = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
+        try {
+            if (!mEvernoteSession.isLoggedIn()) {
+                mEvernoteSession.authenticate(this);
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public void onClick(View v){
