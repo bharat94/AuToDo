@@ -4,6 +4,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
+import com.sendgrid.*;
+import java.io.IOException;
 import android.provider.ContactsContract;
 
 import com.evernote.client.android.EvernoteSession;
@@ -32,6 +34,32 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View v){
         Toast.makeText(MainActivity.this, "Hello", Toast.LENGTH_SHORT).show();
+        MainActivity.sendEmail();
+
+    }
+
+    public static void sendEmail() throws IOException
+
+    {
+        Email from = new Email("akhila.shankar12@gmail.com");
+        String subject = "Sending with SendGrid is Fun";
+        Email to = new Email("akhila.shankar12@gmail.com");
+        Content content = new Content("text/plain", "and easy to do anywhere, even with Java");
+        Mail mail = new Mail(from, subject, to, content);
+
+        SendGrid sg = new SendGrid("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");
+        Request request = new Request();
+        try {
+            request.method = Method.POST;
+            request.endpoint = "mail/send";
+            request.body = mail.build();
+            Response response = sg.api(request);
+            System.out.println(response.statusCode);
+            System.out.println(response.body);
+            System.out.println(response.headers);
+        } catch (IOException ex) {
+            throw ex;
+        }
     }
 
 
