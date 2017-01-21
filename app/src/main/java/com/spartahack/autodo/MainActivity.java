@@ -13,6 +13,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String CONSUMER_SECRET = "ba4973576cbffdfe";
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
     private static final boolean SUPPORT_APP_LINKED_NOTEBOOKS = true;
+    String[] removeList = {"thank", "to", "you", "a", "send", "an", "email", "the"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,14 +34,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void convertStringsToTask(String[] arr){
+    public void convertStringsToTasks(String[] arr){
         for(String s : arr){
             s = s.trim();
             s = s.toLowerCase();
-            if(s.startsWith("thank")){
-                String name = s.substring(5);
+            if(s.contains("thank")) {
+                s = convertStringToTask(s);
+                String emailID = getEmailID(s.trim().split(" "));
             }
         }
+    }
+
+
+
+    public String convertStringToTask(String s){
+
+        for(String str : removeList)
+            removeString(s, str);
+
+        if(s.charAt(s.length()-1) == '.')
+            s.substring(0,s.length()-1);
+
+        if(s.contains(" for ")){
+            s = s.substring(0, s.indexOf(" for "));
+        }
+        return s;
     }
 
 
