@@ -31,4 +31,29 @@ public class MainActivity extends AppCompatActivity {
     public void onClick(View v){
         Toast.makeText(MainActivity.this, "Hello", Toast.LENGTH_SHORT).show();
     }
+
+
+    public void convertStringsToTask(String[] arr){
+        for(String s : arr){
+            s = s.trim();
+            s = s.toLowerCase();
+            if(s.startsWith("thank")){
+                String name = s.substring(5);
+            }
+        }
+    }
+
+
+    public String removeString(String s1, String s2){
+        if(s1.contains(" "+s2+" "))
+            return s1.replace(" "+s2+" ", " ");
+        if(s1.startsWith(s2+" "))
+            return s1.substring(s2.length()+1);
+        if(s1.endsWith(" "+s2))
+            return s1.substring(0, s1.length()-s2.length()-1);
+
+        return s1;
+    }
+
+
 }
