@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.provider.ContactsContract;
+import android.content.Context;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,6 +47,10 @@ import com.evernote.edam.type.Notebook;
 import com.evernote.edam.type.Resource;
 import com.evernote.edam.type.User;
 import com.evernote.thrift.TException;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -76,7 +81,12 @@ public class MainActivity extends AppCompatActivity {
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
     private static final boolean SUPPORT_APP_LINKED_NOTEBOOKS = true;
     String[] removeList = {"thank", "to", "you", "a", "send", "an", "email", "the"};
-    private static String[] TASKS;
+    private static List<String> TASKS = new ArrayList<>();
+    public  String[] keys;
+
+    public String[] projection;
+    String selection;
+    String[] selectionArguments;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,28 +147,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClick(View v) {
-        for(String task : TASKS){
-            System.out.println(task);
+        for(int i =0; i<TASKS.size(); i++){
+            String task = TASKS.get(i);
+            System.out.println("TASK CALLED: "+task);
             analyse(task);
         }
-        for(String email : emails)
-            sendThanks(email);
+
+//        System.out.println("Emails: " + emails.size());
+//
+//        for(String email : emails) {
+//            System.out.println("Sending email to : "+ email);
+//            sendThanks(email);
+//        }
     }
 
 
     public void analyse(String task){
-        String[] projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
-        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
-        String[] selectionArguments = getAlchemyKeywords(task);;
+        projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
+        selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
+        selectionArguments = getAlchemyKeywords(task);
+
+    }
+
+    public void postAsync(String[] selectionArguments){
+        System.out.println("Sel Length: " + selectionArguments.length);
         Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, projection, selection, selectionArguments, null);
         if (phones != null) {
+            System.out.println("Count " + phones.getCount());
             while (phones.moveToNext()) {
+                System.out.println("Phone string" + phones.getString(0));
                 email = phones.getString(0);
             }
             phones.close();
         }
-        if(email!=null)
-        emails.add(email);
+
+        System.out.println("email :: :: : : "+ email);
+        if(email!=null) {
+            emails.add(email);
+            sendThanks(email);
+            email = null;
+        }
     }
 
     private void getRelevantNodes(final EvernoteSession evernoteSession) {
@@ -176,7 +204,11 @@ public class MainActivity extends AppCompatActivity {
                                     evernoteSession.getEvernoteClientFactory().getNoteStoreClient().getNoteContentAsync(note.getGuid(), new EvernoteCallback<String>() {
                                         @Override
                                         public void onSuccess(String result) {
-                                            TASKS = getToDoList(result);
+                                            String[] temp = getToDoList(result);
+                                            for (String item : temp) {
+                                                TASKS.add(item);
+                                            }
+                                            System.out.println("TASKS POPULATED : "+ TASKS.size());
                                         }
 
                                         @Override
@@ -204,10 +236,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String[] getAlchemyKeywords(String task) {
-        NetworkOperation N = new NetworkOperation();
+        NetworkOperation N = new NetworkOperation(this);
         N.setText(task);
         N.execute();
-        return N.getKeywords();
+        return keys;
     }
 
     public void sendThanks(String emailID)
@@ -248,11 +280,9 @@ public class MainActivity extends AppCompatActivity {
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     Element element = (Element) node;
                     Node node1 = element.getChildNodes().item(0);
-                    if (node1.hasAttributes()) {
-                        NamedNodeMap attributes = node1.getAttributes();
-                        if ("true".equalsIgnoreCase(attributes.getNamedItem("checked").getNodeValue())) {
-                            data.add(i, element.getChildNodes().item(1).getNodeValue());
-                        }
+                    NamedNodeMap attributes = node1.getAttributes();
+                    if (attributes.getLength() == 0) {
+                        data.add(element.getChildNodes().item(1).getNodeValue());
                     }
                 }
             }
@@ -264,6 +294,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         String[] stringData = new String[data.size()];
+        System.out.println("String Length : " + data.toArray(stringData).length);
         return data.toArray(stringData);
     }
 
@@ -319,17 +350,24 @@ public class MainActivity extends AppCompatActivity {
         return s1;
     }
 
-    private class NetworkOperation extends AsyncTask<Void, Void, Void> {
+    private class NetworkOperation extends AsyncTask<Void, Void, String[]> {
 
         public String text;
-        public String[] keys;
+        private final Context Asyntaskcontext;
+
+
+        public NetworkOperation(Context context)
+        {
+            Asyntaskcontext = context;
+        }
 
         public void setText(String text){
             this.text = text;
         }
 
         @Override
-        protected Void doInBackground(Void... voids) {
+        protected String[] doInBackground(Void... voids) {
+            ArrayList<String> keys = new ArrayList<>();
             AlchemyLanguage service = new AlchemyLanguage();
             service.setApiKey("705d2a04ed9abdb21e451acc8216187ad8621156");
 
@@ -337,14 +375,36 @@ public class MainActivity extends AppCompatActivity {
             paramsMap.put(AlchemyLanguage.TEXT, text);
             Keywords keywords = service.getKeywords(paramsMap).execute();
             //ServiceCall<Keywords> keywords = service.getKeywords(params);
-            System.out.println("All Keywords: " + keywords);
-            // Add keywords to keys
-            return null;
+
+            try{
+                JSONObject json = new JSONObject(keywords.toString());
+                JSONArray jsonArray = json.getJSONArray("keywords");
+
+                for(int index = 0; index < jsonArray.length(); index++)
+                {
+                    String s = jsonArray.getJSONObject(index).getString("text");
+                    if(s!=null){
+                        keys.add(s);
+                    }
+                }
+            }
+
+            catch (JSONException e )
+            {
+                System.out.print(e);
+            }
+
+            String[] answer = new String[keys.size()];
+            return keys.toArray(answer);
         }
 
 
-        public String[] getKeywords(){
-            return this.keys;
+        @Override
+        protected void onPostExecute(String arr[]){
+            MainActivity mainActivity = (MainActivity) Asyntaskcontext;
+            mainActivity.keys = arr;
+            super.onPostExecute(arr);
+            mainActivity.postAsync(arr);
         }
 
     }
