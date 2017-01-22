@@ -1,11 +1,18 @@
 package com.spartahack.autodo;
 
+import android.Manifest;
 import android.app.DownloadManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.provider.ContactsContract;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
@@ -16,8 +23,11 @@ import java.util.Properties;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.evernote.client.android.EvernoteSession;
 
+
 public class MainActivity extends AppCompatActivity {
 
+    private static final int MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 0;
+    private String name,phoneNumber;
     private static final String CONSUMER_KEY = "rohansapre";
     private static final String CONSUMER_SECRET = "ba4973576cbffdfe";
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
@@ -28,19 +38,86 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
-        try {
-            if (!mEvernoteSession.isLoggedIn()) {
-                mEvernoteSession.authenticate(this);
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            String []permissions = {Manifest.permission.READ_CONTACTS};
+            ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSIONS_REQUEST_READ_PHONE_STATE);
+        }
+
+
+    }
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_READ_PHONE_STATE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                    EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
+                    try {
+                        if (!mEvernoteSession.isLoggedIn()) {
+                            mEvernoteSession.authenticate(this);
+                        }
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
+
+                    accessContacts();
+
+                    System.out.println("if loop");
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
+
+                    System.out.println("else loop");
+                }
+                return;
             }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+
+            // other 'case' lines to check for other
+            // permissions this app might request
         }
     }
 
+
+
+    public void accessContacts(){
+        Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
+        while (phones.moveToNext())
+        {
+            name=phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+            phoneNumber = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+        }
+
+        phones.close();
+
+        System.out.println("name = "+ name );
+        System.out.println("phone number : " + phones);
+    }
+
+
+
+
+
     public void onClick(View v) throws IOException {
         Toast.makeText(MainActivity.this, "Sending Email", Toast.LENGTH_SHORT).show();
-        sendThanks("akhila.shankar12@gmail.com");
+        //sendThanks("akhila.shankar12@gmail.com");
 
     }
 
