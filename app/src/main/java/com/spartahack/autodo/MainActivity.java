@@ -165,8 +165,12 @@ public class MainActivity extends AppCompatActivity {
     public void analyse(String task){
         projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
         selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
-        selectionArguments = getAlchemyKeywords(task);
-
+        if(task.contains("thank")||task.contains("Thank")) {
+            task = convertStringToTask(task);
+            task = task.trim();
+            System.out.println("task : "+task);
+            selectionArguments = getAlchemyKeywords(task);
+        }
     }
 
     public void postAsync(String[] selectionArguments){
