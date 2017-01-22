@@ -101,7 +101,6 @@ public class MainActivity extends AppCompatActivity {
             String []permissions = {Manifest.permission.READ_CONTACTS};
             ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSIONS_REQUEST_READ_PHONE_STATE);
         }
-
     }
 
     @Override
@@ -356,6 +355,184 @@ public class MainActivity extends AppCompatActivity {
         }
         String[] stringData = new String[data.size()];
         return data.toArray(stringData);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_READ_PHONE_STATE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                    //accessContacts();
+
+                    System.out.println("if loop");
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
+
+                    System.out.println("else loop");
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
+    public void onClick(View v) {
+        String[] projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
+        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
+        String[] selectionArguments = { "Akhila"};
+            Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, projection, selection, selectionArguments, null);
+            if (phones != null) {
+                while (phones.moveToNext()) {
+                    email = phones.getString(0);
+                }
+                phones.close();
+            }
+            System.out.println("Mail : " + email);
+            sendThanks(email);
+            getAlchemyKeywords();
+    }
+
+    private void getRelevantNodes(final EvernoteSession evernoteSession) {
+        Future<List<Notebook>> notebooks = evernoteSession.getEvernoteClientFactory().getNoteStoreClient().listNotebooksAsync(new EvernoteCallback<List<Notebook>>() {
+            @Override
+            public void onSuccess(List<Notebook> result) {
+                for (Notebook notebook : result) {
+                    if (notebook.getName().equalsIgnoreCase("to do list")) {
+                        NoteFilter filter = new NoteFilter();
+                        filter.setNotebookGuid(notebook.getGuid());
+                        evernoteSession.getEvernoteClientFactory().getNoteStoreClient().findNotesAsync(filter, 0, 999, new EvernoteCallback<NoteList>() {
+                            @Override
+                            public void onSuccess(NoteList result) {
+                                for (Note note : result.getNotes()) {
+                                    evernoteSession.getEvernoteClientFactory().getNoteStoreClient().getNoteContentAsync(note.getGuid(), new EvernoteCallback<String>() {
+                                        @Override
+                                        public void onSuccess(String result) {
+                                            TASKS = getToDoList(result);
+                                        }
+
+                                        @Override
+                                        public void onException(Exception exception) {
+                                            System.out.println("Exception: " + exception);
+                                        }
+                                    });
+                                }
+                            }
+
+                            @Override
+                            public void onException(Exception exception) {
+                                System.out.println("Exception: " + exception);
+                            }
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onException(Exception exception) {
+                System.out.println("Error retrieving notebooks");
+            }
+        });
+    }
+
+    public void getAlchemyKeywords() {
+        new NetworkOperation().execute();
+    }
+
+    public void sendThanks(String emailID)
+    {
+        BackgroundMail.newBuilder(this)
+                .withUsername("jane83231@gmail.com")
+                .withPassword("janesmith12")
+                .withMailto(emailID)
+                .withType(BackgroundMail.TYPE_PLAIN)
+                .withSubject("Thanks!")
+                .withBody("Hey, Thank you so much")
+                .withOnSuccessCallback(new BackgroundMail.OnSuccessCallback() {
+                    @Override
+                    public void onSuccess() {
+                        //do some magic
+                        Toast.makeText(MainActivity.this, "Email Sent", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .withOnFailCallback(new BackgroundMail.OnFailCallback() {
+                    @Override
+                    public void onFail() {
+                        //do some magic
+                        Toast.makeText(MainActivity.this, "Email Not Sent!", Toast.LENGTH_SHORT).show();
+                    }
+                }).send();
+    }
+
+    private String[] getToDoList(String result) {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        List<String> data = new ArrayList<>();
+        try {
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            InputSource inputSource = new InputSource(new StringReader(result));
+            Document document = documentBuilder.parse(inputSource);
+            NodeList nodeList = document.getElementsByTagName("div");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) node;
+                    Node node1 = element.getChildNodes().item(0);
+                    if (node1.hasAttributes()) {
+                        NamedNodeMap attributes = node1.getAttributes();
+                        if ("true".equalsIgnoreCase(attributes.getNamedItem("checked").getNodeValue())) {
+                            data.add(i, element.getChildNodes().item(1).getNodeValue());
+                        }
+                    }
+                }
+            }
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String[] stringData = new String[data.size()];
+        return data.toArray(stringData);
+    }
+
+    public void convertStringsToTasks(String[] arr) {
+        for(String s : arr){
+            s = s.trim();
+            s = s.toLowerCase();
+            if(s.contains("thank")) {
+                s = convertStringToTask(s);
+                String emailID = getEmailID(s.trim().split(" "));
+                sendThanks(emailID);
+            }
+        }
+    }
+
+
+    public String getEmailID(String[] arr) {
+        //Access android contacts
+        // Run match queries on the db with arr
+
+        for (int i = 0; i < arr.length - 1; i++) {
+            String s1 = arr[i];
+            String s2 = arr[i + 1];
+
+        }
+        return "";
     }
 
     public String convertStringToTask(String s){
