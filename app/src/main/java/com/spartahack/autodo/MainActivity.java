@@ -3,6 +3,7 @@ package com.spartahack.autodo;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.provider.ContactsContract;
@@ -18,10 +19,15 @@ import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Properties;
-
-
+import java.util.Map;
+import java.util.HashMap;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.evernote.client.android.EvernoteSession;
+import com.ibm.watson.developer_cloud.alchemy.v1.AlchemyLanguage;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keyword;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keywords;
+import com.ibm.watson.developer_cloud.http.ServiceCall;
+import com.ibm.watson.developer_cloud.util.CredentialUtils;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -95,29 +101,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
-    public void accessContacts(){
-        Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
-        while (phones.moveToNext())
-        {
-            name=phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-            phoneNumber = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-        }
-
-        phones.close();
-
-        System.out.println("name = "+ name );
-        System.out.println("phone number : " + phones);
+    public void onClick(View v) throws IOException {
+        //Toast.makeText(MainActivity.this, "Sending Email", Toast.LENGTH_SHORT).show();
+        sendThanks("akhila.shankar12@gmail.com");
+        getAlchemyKeywords();
     }
 
-
-
-
-
-    public void onClick(View v) throws IOException {
-        Toast.makeText(MainActivity.this, "Sending Email", Toast.LENGTH_SHORT).show();
-        //sendThanks("akhila.shankar12@gmail.com");
+    public void getAlchemyKeywords() throws IOException {
+        new NetworkOperation().execute( );
 
     }
 
@@ -200,5 +191,21 @@ public class MainActivity extends AppCompatActivity {
         return s1;
     }
 
+    private class NetworkOperation extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            AlchemyLanguage service = new AlchemyLanguage();
+            service.setApiKey("705d2a04ed9abdb21e451acc8216187ad8621156");
+
+            Map<String, Object> paramsMap = new HashMap<String, Object>();
+            paramsMap.put(AlchemyLanguage.TEXT, "Send a thank you message to John Doe for dinner yesterday.");
+            Keywords keywords = service.getKeywords(paramsMap).execute();
+            //ServiceCall<Keywords> keywords = service.getKeywords(params);
+            System.out.println("All Keywords: " + keywords);
+            return null;
+        }
+
+    }
 
 }

@@ -28,4 +28,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.evernote:android-sdk:2.0.0-RC4'
     compile project(path: ':gmailbackgroundlibrary')
+    compile 'com.ibm.watson.developer_cloud:java-sdk:3.0.0-RC1'
 }
