@@ -43,12 +43,27 @@ import com.evernote.edam.notestore.NotesMetadataList;
 import com.evernote.edam.notestore.NotesMetadataResultSpec;
 import com.evernote.edam.type.Note;
 import com.evernote.edam.type.Notebook;
+import com.evernote.edam.type.Resource;
 import com.evernote.edam.type.User;
 import com.evernote.thrift.TException;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Future;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 
 public class MainActivity extends AppCompatActivity {
@@ -60,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
     private static final boolean SUPPORT_APP_LINKED_NOTEBOOKS = true;
     String[] removeList = {"thank", "to", "you", "a", "send", "an", "email", "the"};
+    private static String[] TASKS;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,20 +150,39 @@ public class MainActivity extends AppCompatActivity {
             getAlchemyKeywords();
     }
 
-    private void getRelevantNodes(EvernoteSession evernoteSession) {
+    private void getRelevantNodes(final EvernoteSession evernoteSession) {
         Future<List<Notebook>> notebooks = evernoteSession.getEvernoteClientFactory().getNoteStoreClient().listNotebooksAsync(new EvernoteCallback<List<Notebook>>() {
             @Override
             public void onSuccess(List<Notebook> result) {
-                List<String> namesList = new ArrayList<>(result.size());
-                System.out.println(result.size());
                 for (Notebook notebook : result) {
-                    namesList.add(notebook.getName());
-                    System.out.println(notebook.getName());
-                }
-                for (String notebook : namesList) {
-                    if (notebook.equalsIgnoreCase("to do list")) {
-                        System.out.println("Notebook: " + notebook);
-                        Toast.makeText(getApplicationContext(), notebook, Toast.LENGTH_LONG).show();
+                    if (notebook.getName().equalsIgnoreCase("to do list")) {
+                        Toast.makeText(getApplicationContext(), notebook.getName(), Toast.LENGTH_LONG).show();
+                        NoteFilter filter = new NoteFilter();
+                        filter.setNotebookGuid(notebook.getGuid());
+                        evernoteSession.getEvernoteClientFactory().getNoteStoreClient().findNotesAsync(filter, 0, 999, new EvernoteCallback<NoteList>() {
+                            @Override
+                            public void onSuccess(NoteList result) {
+                                for (Note note : result.getNotes()) {
+                                    Toast.makeText(getApplicationContext(), note.getContent(), Toast.LENGTH_LONG).show();
+                                    evernoteSession.getEvernoteClientFactory().getNoteStoreClient().getNoteContentAsync(note.getGuid(), new EvernoteCallback<String>() {
+                                        @Override
+                                        public void onSuccess(String result) {
+                                            TASKS = getToDoList(result);
+                                        }
+
+                                        @Override
+                                        public void onException(Exception exception) {
+                                            System.out.println("Exception: " + exception);
+                                        }
+                                    });
+                                }
+                            }
+
+                            @Override
+                            public void onException(Exception exception) {
+                                System.out.println("Exception: " + exception);
+                            }
+                        });
                     }
                 }
             }
@@ -185,10 +220,40 @@ public class MainActivity extends AppCompatActivity {
                         //do some magic
                         Toast.makeText(MainActivity.this, "Email Not Sent!", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .send();
+                }).send();
     }
 
+    private String[] getToDoList(String result) {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        List<String> data = new ArrayList<>();
+        try {
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            InputSource inputSource = new InputSource(new StringReader(result));
+            Document document = documentBuilder.parse(inputSource);
+            NodeList nodeList = document.getElementsByTagName("div");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) node;
+                    Node node1 = element.getChildNodes().item(0);
+                    if (node1.hasAttributes()) {
+                        NamedNodeMap attributes = node1.getAttributes();
+                        if ("true".equalsIgnoreCase(attributes.getNamedItem("checked").getNodeValue())) {
+                            data.add(i, element.getChildNodes().item(1).getNodeValue());
+                        }
+                    }
+                }
+            }
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String[] stringData = new String[data.size()];
+        return data.toArray(stringData);
+    }
 
     public void convertStringsToTasks(String[] arr) {
         for(String s : arr){
