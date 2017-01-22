@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 0;
     private static String email;
+    private static ArrayList<String> emails;
     private static final String CONSUMER_KEY = "rohansapre";
     private static final String CONSUMER_SECRET = "ba4973576cbffdfe";
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        emails = new ArrayList<>();
         EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
         try {
             if (!mEvernoteSession.isLoggedIn()) {
@@ -136,9 +137,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClick(View v) {
+        for(String task : TASKS){
+            System.out.println(task);
+            analyse(task);
+        }
+        for(String email : emails)
+            sendThanks(email);
+    }
+
+
+    public void analyse(String task){
         String[] projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
         String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
-        String[] selectionArguments = { "Akhila"};
+        String[] selectionArguments = getAlchemyKeywords(task);;
         Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, projection, selection, selectionArguments, null);
         if (phones != null) {
             while (phones.moveToNext()) {
@@ -146,9 +157,8 @@ public class MainActivity extends AppCompatActivity {
             }
             phones.close();
         }
-        System.out.println("Mail : " + email);
-        sendThanks(email);
-        getAlchemyKeywords();
+        if(email!=null)
+        emails.add(email);
     }
 
     private void getRelevantNodes(final EvernoteSession evernoteSession) {
@@ -193,8 +203,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void getAlchemyKeywords() {
-        new NetworkOperation().execute();
+    public String[] getAlchemyKeywords(String task) {
+        NetworkOperation N = new NetworkOperation();
+        N.setText(task);
+        N.execute();
+        return N.getKeywords();
     }
 
     public void sendThanks(String emailID)
@@ -308,17 +321,30 @@ public class MainActivity extends AppCompatActivity {
 
     private class NetworkOperation extends AsyncTask<Void, Void, Void> {
 
+        public String text;
+        public String[] keys;
+
+        public void setText(String text){
+            this.text = text;
+        }
+
         @Override
         protected Void doInBackground(Void... voids) {
             AlchemyLanguage service = new AlchemyLanguage();
             service.setApiKey("705d2a04ed9abdb21e451acc8216187ad8621156");
 
             Map<String, Object> paramsMap = new HashMap<String, Object>();
-            paramsMap.put(AlchemyLanguage.TEXT, "Send a thank you message to John Doe for dinner yesterday.");
+            paramsMap.put(AlchemyLanguage.TEXT, text);
             Keywords keywords = service.getKeywords(paramsMap).execute();
             //ServiceCall<Keywords> keywords = service.getKeywords(params);
             System.out.println("All Keywords: " + keywords);
+            // Add keywords to keys
             return null;
+        }
+
+
+        public String[] getKeywords(){
+            return this.keys;
         }
 
     }
