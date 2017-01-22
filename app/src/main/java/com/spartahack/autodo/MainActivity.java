@@ -81,6 +81,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
+        try {
+            if (!mEvernoteSession.isLoggedIn()) {
+                mEvernoteSession.authenticate(this);
+            }
+            getRelevantNodes(mEvernoteSession);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -104,15 +115,6 @@ public class MainActivity extends AppCompatActivity {
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-
-                    EvernoteSession mEvernoteSession = new EvernoteSession.Builder(this).setEvernoteService(EVERNOTE_SERVICE).setSupportAppLinkedNotebooks(SUPPORT_APP_LINKED_NOTEBOOKS).build(CONSUMER_KEY, CONSUMER_SECRET).asSingleton();
-                    try {
-                        if (!mEvernoteSession.isLoggedIn())
-                            mEvernoteSession.authenticate(this);
-                        getRelevantNodes(mEvernoteSession);
-                    } catch (Exception e) {
-                        System.out.println(e.getMessage());
-                    }
 
                     //accessContacts();
 
@@ -156,14 +158,12 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(List<Notebook> result) {
                 for (Notebook notebook : result) {
                     if (notebook.getName().equalsIgnoreCase("to do list")) {
-                        Toast.makeText(getApplicationContext(), notebook.getName(), Toast.LENGTH_LONG).show();
                         NoteFilter filter = new NoteFilter();
                         filter.setNotebookGuid(notebook.getGuid());
                         evernoteSession.getEvernoteClientFactory().getNoteStoreClient().findNotesAsync(filter, 0, 999, new EvernoteCallback<NoteList>() {
                             @Override
                             public void onSuccess(NoteList result) {
                                 for (Note note : result.getNotes()) {
-                                    Toast.makeText(getApplicationContext(), note.getContent(), Toast.LENGTH_LONG).show();
                                     evernoteSession.getEvernoteClientFactory().getNoteStoreClient().getNoteContentAsync(note.getGuid(), new EvernoteCallback<String>() {
                                         @Override
                                         public void onSuccess(String result) {
