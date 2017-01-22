@@ -2,14 +2,15 @@ package com.spartahack.autodo;
 
 import android.app.DownloadManager;
 import android.content.Intent;
+import android.database.Cursor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Toast;
+import android.provider.ContactsContract;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Properties;
 
 
@@ -22,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String CONSUMER_SECRET = "ba4973576cbffdfe";
     private static final EvernoteSession.EvernoteService EVERNOTE_SERVICE = EvernoteSession.EvernoteService.SANDBOX;
     private static final boolean SUPPORT_APP_LINKED_NOTEBOOKS = true;
+    private static String name, phoneNumber,email;
     String[] removeList = {"thank", "to", "you", "a", "send", "an", "email", "the"};
 
     @Override
@@ -36,15 +38,26 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-    }
-
-    public void onClick(View v) throws IOException {
-        Toast.makeText(MainActivity.this, "Sending Email", Toast.LENGTH_SHORT).show();
-        sendThanks("akhila.shankar12@gmail.com");
 
     }
 
-    public void sendThanks(String emailID) throws IOException
+    public void onClick(View v) {
+        String[] projection = new String[] { ContactsContract.CommonDataKinds.Email.DATA };
+        String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " = ?";
+        String[] selectionArguments = { "John Johnson" };
+        Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, projection ,selection,selectionArguments, null);
+        if(phones != null)
+        {
+            while(phones.moveToNext()) {
+                email = phones.getString(0);
+            }
+
+        }
+        phones.close();
+        sendThanks(email);
+    }
+
+    public void sendThanks(String emailID)
     {
         BackgroundMail.newBuilder(this)
                 .withUsername("jane83231@gmail.com")
@@ -71,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void convertStringsToTasks(String[] arr) throws IOException {
+    public void convertStringsToTasks(String[] arr) {
         for(String s : arr){
             s = s.trim();
             s = s.toLowerCase();
