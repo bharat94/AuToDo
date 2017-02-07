@@ -1,4 +1,6 @@
 # AuToDo
+Go to sleep, everything else is taken care of!
+
 Somebody who is tired of all chores and wants a bed appearing splitting the earth just so they could sleep, needs to use our android application and click one button. The app finds everything it can do on their to-do list and simply does it. For example, all the items to be bought on the list are automatically ordered, all emails to be sent are typed and sent.
 
 How we built it
